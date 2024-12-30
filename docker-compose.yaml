@@ -1,0 +1,16 @@
+services:
+  pg:
+    image: "postgres:15-alpine"
+    container_name: sdai-calculator-pg
+    environment:
+      POSTGRES_USER: sdai-calculator
+      POSTGRES_PASSWORD: sdai-calculator
+      POSTGRES_DBNAME: sdai-calculator
+    ports:
+      - 127.0.0.1:5432:5432
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    restart: unless-stopped
