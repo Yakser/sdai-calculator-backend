@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"github.com/rs/cors"
 	"log/slog"
 	"net/http"
 	"os"
@@ -55,6 +56,15 @@ func main() {
 	}
 
 	router := chi.NewRouter()
+
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:8081"},
+		AllowCredentials: true,
+		AllowedHeaders:   []string{"Content-Type", "Authorization", "X-Idempotency-Token"},
+		Debug:            cfg.Env == envLocal,
+	})
+
+	router.Use(c.Handler)
 
 	router.Get("/swagger/json", func(w http.ResponseWriter, r *http.Request) {
 		err := json.NewEncoder(w).Encode(swagger)
