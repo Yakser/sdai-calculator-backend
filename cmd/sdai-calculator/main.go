@@ -13,7 +13,9 @@ import (
 	httphandlers "sdai-calculator/internal/http-server/handlers"
 	mwlogger "sdai-calculator/internal/http-server/middleware/logger"
 	"sdai-calculator/internal/lib/logger/sl"
-	"sdai-calculator/internal/storage/postgresql"
+	"sdai-calculator/internal/repository/postgresql"
+	service "sdai-calculator/internal/service/calculation"
+
 	"syscall"
 	"time"
 
@@ -40,14 +42,15 @@ func main() {
 
 	logger.Info("starting sdai-calculator service")
 
-	storage, err := postgresql.New(cfg.StoragePath)
-
+	repo, err := postgresql.NewCalculationRepository(cfg.StoragePath)
 	if err != nil {
-		logger.Error("failed to init storage", sl.Err(err))
+		logger.Error("failed to init calculation repository", sl.Err(err))
 		os.Exit(1)
 	}
 
-	handlers := httphandlers.NewHandlers(logger, storage)
+	calculationService := service.NewCalculationService(repo)
+
+	handlers := httphandlers.NewHandlers(logger, calculationService)
 
 	swagger, err := server.GetSwagger()
 	if err != nil {
@@ -58,6 +61,7 @@ func main() {
 	router := chi.NewRouter()
 
 	c := cors.New(cors.Options{
+		// fixme: move allowed origins to cfg
 		AllowedOrigins:   []string{"http://localhost:8081"},
 		AllowCredentials: true,
 		AllowedHeaders:   []string{"Content-Type", "Authorization", "X-Idempotency-Token"},
