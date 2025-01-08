@@ -1,24 +1,25 @@
 package postgresql
 
 import (
-	"database/sql"
+	"context"
 	"errors"
 	"fmt"
 
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jmoiron/sqlx"
 	"sdai-calculator/internal/domain"
 )
 
 type CalculationRepository struct {
-	db *sql.DB
+	db *sqlx.DB
 }
 
 func NewCalculationRepository(connectionString string) (*CalculationRepository, error) {
 	const component = "storage.postgresql.NewCalculationStorage"
 
-	db, err := sql.Open("pgx", connectionString)
+	db, err := sqlx.Connect("pgx", connectionString)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %w", component, err)
 	}
@@ -33,21 +34,36 @@ func NewCalculationRepository(connectionString string) (*CalculationRepository, 
 	}, nil
 }
 
-func (s *CalculationRepository) SaveCalculation(sdaiIndex float64) (int64, error) {
+func (s *CalculationRepository) SaveCalculation(
+	painfulJoints int64,
+	swollenJoints int64,
+	patientActivityAssessment int64,
+	physicianActivityAssessment int64,
+	crp float64,
+	sdaiIndex float64,
+) (int64, error) {
 	const component = "storage.postgresql.SaveCalculation"
 
+	// todo: use sqlx
 	query, err := s.db.Prepare(`
-		INSERT INTO calculations (user_id, sdai_index) 
-		VALUES ($1, $2) RETURNING id
+		INSERT INTO calculations (user_id, painful_joints, swollen_joints, physician_activity_assessment, patient_activity_assessment, crp, sdai_index) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id
 	`)
 	if err != nil {
 		return 0, fmt.Errorf("%v: %w", component, err)
 	}
 	defer query.Close()
 
+	// fixme
+	userID := -1
+
 	var id int64
-	// fixme: change user id
-	err = query.QueryRow(-1, fmt.Sprintf("%v", sdaiIndex)).Scan(&id)
+	err = query.QueryRow(userID,
+		painfulJoints,
+		swollenJoints,
+		patientActivityAssessment,
+		physicianActivityAssessment,
+		crp, fmt.Sprintf("%v", sdaiIndex)).Scan(&id)
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) {
@@ -62,37 +78,26 @@ func (s *CalculationRepository) SaveCalculation(sdaiIndex float64) (int64, error
 	return id, nil
 }
 
-func (s *CalculationRepository) GetCalculationsByUserID(userID int64) ([]*domain.Calculation, error) {
+func (s *CalculationRepository) GetCalculationsByUserID(ctx context.Context, userID int64) ([]domain.Calculation, error) {
 	const component = "storage.postgresql.GetCalculationsByUserID"
-
-	query, err := s.db.Prepare(`
-		SELECT id, user_id, sdai_index, created_at
+	// todo: pagination
+	// todo
+	const getCalculationsQuery = `
+		SELECT id, user_id, painful_joints, swollen_joints, physician_activity_assessment, patient_activity_assessment, crp, sdai_index, created_at
 		FROM calculations
 		WHERE user_id = $1
-	`)
+	`
+
+	query, args, err := sqlx.In(getCalculationsQuery, userID)
 	if err != nil {
 		return nil, fmt.Errorf("%v: %w", component, err)
 	}
-	defer query.Close()
 
-	rows, err := query.Query(userID)
-	if err != nil {
-		return nil, fmt.Errorf("%v: %w", component, err)
-	}
-	defer rows.Close()
+	query = s.db.Rebind(query)
 
-	var calculations []*domain.Calculation
-	for rows.Next() {
-		var calculation domain.Calculation
-		if err := rows.Scan(&calculation.ID, &calculation.UserID, &calculation.SdaiIndex, &calculation.CreatedAt); err != nil {
-			return nil, fmt.Errorf("%v: %w", component, err)
-		}
-		calculations = append(calculations, &calculation)
-	}
+	var calc []domain.Calculation
 
-	if len(calculations) == 0 {
-		return nil, domain.ErrNoCalculationsFound
-	}
+	err = s.db.SelectContext(ctx, &calc, query, args...)
 
-	return calculations, nil
+	return calc, err
 }

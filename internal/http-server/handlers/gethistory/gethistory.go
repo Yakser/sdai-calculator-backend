@@ -15,7 +15,7 @@ type GetHistoryHandler struct {
 }
 
 type HistoryGetter interface {
-	GetHistory(ctx context.Context, userID int64) ([]*domain.Calculation, error)
+	GetHistory(ctx context.Context, userID int64) ([]domain.Calculation, error)
 }
 
 func NewGetHistoryHandler(logger *slog.Logger, historyGetter HistoryGetter) *GetHistoryHandler {
@@ -43,7 +43,7 @@ func (g *GetHistoryHandler) GetHistory(ctx context.Context, request server.GetHi
 
 	return server.GetHistory200JSONResponse{
 		GetHistoryResponseJSONResponse: server.GetHistoryResponseJSONResponse{
-			History: dto.ToSDAIRecords(calculations),
+			History: dto.ToHistoryRecords(calculations),
 		},
 	}, nil
 }

@@ -134,7 +134,7 @@ func main() {
 		},
 	)
 
-	logger.Info("starting server", slog.String("addr", cfg.Address))
+	logger.Info("starting http server", slog.String("addr", cfg.Address))
 
 	httpServer := &http.Server{
 		Addr:         cfg.Address,
@@ -145,16 +145,16 @@ func main() {
 	}
 
 	if err := httpServer.ListenAndServe(); err != nil {
-		logger.Error("failed to start server", sl.Err(err))
+		logger.Error("failed to start http server", sl.Err(err))
 	}
 
 	// fixme: graceful shutdown doesn't work
 
-	logger.Info("server started", slog.String("addr", cfg.Address))
+	logger.Info("http server started", slog.String("addr", cfg.Address))
 
 	gracefulShutdown(httpServer, logger)
 
-	logger.Error("server stopped")
+	logger.Error("http server stopped")
 }
 
 func setupLogger(env string) *slog.Logger {

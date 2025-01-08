@@ -20,7 +20,7 @@ type Handlers struct {
 
 type CalculationService interface {
 	CalculateSDAI(ctx context.Context, painfulJoints int64, swollenJoints int64, patientActivityAssessment int64, physicianActivityAssessment int64, crp float64) (float64, error)
-	GetHistory(ctx context.Context, userID int64) ([]*domain.Calculation, error)
+	GetHistory(ctx context.Context, userID int64) ([]domain.Calculation, error)
 }
 
 func NewHandlers(logger *slog.Logger, calculationService CalculationService) *Handlers {

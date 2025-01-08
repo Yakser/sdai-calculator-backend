@@ -28,7 +28,14 @@ func (s *CalculationService) CalculateSDAI(
 		float64(physicianActivityAssessment)/10 +
 		crp
 
-	_, err := s.repo.SaveCalculation(sdaiIndex)
+	_, err := s.repo.SaveCalculation(
+		painfulJoints,
+		swollenJoints,
+		patientActivityAssessment,
+		physicianActivityAssessment,
+		crp,
+		sdaiIndex,
+	)
 
 	if err != nil {
 		if errors.Is(err, domain.ErrCalculationAlreadyExists) {
@@ -40,8 +47,8 @@ func (s *CalculationService) CalculateSDAI(
 	return sdaiIndex, nil
 }
 
-func (s *CalculationService) GetHistory(ctx context.Context, userID int64) ([]*domain.Calculation, error) {
-	records, err := s.repo.GetCalculationsByUserID(userID)
+func (s *CalculationService) GetHistory(ctx context.Context, userID int64) ([]domain.Calculation, error) {
+	records, err := s.repo.GetCalculationsByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}

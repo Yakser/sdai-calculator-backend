@@ -25,14 +25,14 @@ func NewCalculateHandler(logger *slog.Logger, calculator Calculator) *CalculateH
 }
 
 func (c *CalculateHandler) Calculate(ctx context.Context, request server.CalculateRequestObject) (server.CalculateResponseObject, error) {
-	body := request.Body
+	params := request.Body.Parameters
 
 	sdaiIndex, err := c.calculator.CalculateSDAI(ctx,
-		body.PainfulJoints,
-		body.SwollenJoints,
-		body.PatientActivityAssessment,
-		body.PhysicianActivityAssessment,
-		body.Crp,
+		params.PainfulJoints,
+		params.SwollenJoints,
+		params.PatientActivityAssessment,
+		params.PhysicianActivityAssessment,
+		params.Crp,
 	)
 	if err != nil {
 		if err == domain.ErrCalculationAlreadyExists {
